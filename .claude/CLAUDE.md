@@ -8,11 +8,11 @@ Personal portfolio of Abdoulbasti MUKAILA, forked from Brittany Chiang's v4 site
 
 ## Commands
 
-Use the Node version in `.nvmrc` (14.16.0) and yarn. `yarn.lock` is committed and `package-lock.json` is gitignored.
+Use the Node version in `.nvmrc` (14.16.0) and npm. `package-lock.json` is committed and `.npmrc` sets `legacy-peer-deps=true`, because npm 7+ rejects the Gatsby 3 dependency tree otherwise. Run `nvm use` before any npm command: the shell's default Node is newer, and its npm would rewrite the lockfile.
 
 ```sh
 nvm use                      # `nvm install` the first time
-yarn                         # install deps (also installs the husky hook)
+npm ci                       # install deps from the lockfile (also installs the husky hook)
 npm start                    # gatsby develop: http://localhost:8000, GraphiQL at /___graphql
 npm run build                # production build into public/
 npm run serve                # serve the production build: http://localhost:9000
