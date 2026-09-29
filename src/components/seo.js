@@ -1,14 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Helmet } from 'react-helmet';
-import { useLocation } from '@reach/router';
 import { useStaticQuery, graphql } from 'gatsby';
 
-// https://www.gatsbyjs.com/docs/add-seo-component/
+// https://www.gatsbyjs.com/docs/how-to/adding-common-features/adding-seo-component/
+// Render it from a page's `Head` export: https://www.gatsbyjs.com/docs/reference/built-in-components/gatsby-head/
 
-const Head = ({ title, description, image }) => {
-  const { pathname } = useLocation();
-
+const Seo = ({ title = null, description = null, image = null, pathname = '' }) => {
   const { site } = useStaticQuery(
     graphql`
       query {
@@ -27,15 +24,16 @@ const Head = ({ title, description, image }) => {
   const { defaultTitle, defaultDescription, siteUrl, defaultImage } = site.siteMetadata;
 
   const seo = {
-    title: title || defaultTitle,
+    title: title ? `${title} | ${defaultTitle}` : defaultTitle,
     description: description || defaultDescription,
     image: `${siteUrl}${image || defaultImage}`,
     url: `${siteUrl}${pathname}`,
   };
 
   return (
-    <Helmet title={title} defaultTitle={seo.title} titleTemplate={`%s | ${defaultTitle}`}>
+    <>
       <html lang="en" />
+      <title>{seo.title}</title>
 
       <meta name="description" content={seo.description} />
       <meta name="image" content={seo.image} />
@@ -52,20 +50,15 @@ const Head = ({ title, description, image }) => {
       <meta name="twitter:image" content={seo.image} />
 
       <meta name="google-site-verification" content="DCl7VAf9tcz6eD9gb67NfkNnJ1PKRNcg8qQiwpbx9Lk" />
-    </Helmet>
+    </>
   );
 };
 
-export default Head;
+export default Seo;
 
-Head.propTypes = {
+Seo.propTypes = {
   title: PropTypes.string,
   description: PropTypes.string,
   image: PropTypes.string,
-};
-
-Head.defaultProps = {
-  title: null,
-  description: null,
-  image: null,
+  pathname: PropTypes.string,
 };
