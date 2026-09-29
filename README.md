@@ -73,6 +73,33 @@ Yes, you can fork this repo. Please give me proper credit by linking back to [br
    npm run serve
    ```
 
+## 📈 Analytics (to do)
+
+The site has no analytics for now. The Gatsby 5 migration removed `gatsby-plugin-google-analytics`, because it used Brittany Chiang's Universal Analytics ID and Google shut down Universal Analytics in July 2023.
+
+To add Google Analytics 4 once you have a measurement ID (`G-XXXXXXXXXX`):
+
+1. Install the plugin
+
+   ```sh
+   npm install gatsby-plugin-google-gtag
+   ```
+
+1. Add it to `plugins` in `gatsby-config.js`
+
+   ```js
+   {
+     resolve: `gatsby-plugin-google-gtag`,
+     options: {
+       trackingIds: ['G-XXXXXXXXXX'],
+     },
+   },
+   ```
+
+1. Check it in a production build (`npm run build && npm run serve`). The plugin does nothing in `npm start`.
+
+Analytics cookies need visitor consent in the EU, so plan for a consent banner too.
+
 ## 🎨 Color Reference
 
 | Color          | Hex                                                                |
