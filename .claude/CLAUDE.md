@@ -19,9 +19,13 @@ npm run serve                # serve the production build: http://localhost:9000
 npm run clean                # delete .cache/ and public/ (do this after content-type or schema changes)
 npm run format               # prettier over all js/jsx/json/md
 npx eslint src gatsby-*.js   # lint (there is no lint script)
+
+make dev                     # gatsby develop in Docker with Compose Watch: http://localhost:8000
+make preview                 # production image (nginx) locally: http://localhost:9000
+make deploy ENV=test|prod    # on the VPS only: pull the GHCR image and restart
 ```
 
-There is no test suite. `npm run build` is the real check, because it runs every GraphQL query and server-renders every page.
+There is no test suite. `npm run build` is the real check, because it runs every GraphQL query and server-renders every page. The Docker workflow runs the same build under Linux on every pull request.
 
 - On `/`, the server render outputs only the loader. Runtime errors in the home-page sections therefore show only in the browser, while GraphQL errors in them still fail the build.
 - After a build, page-query results are in `public/page-data/**/page-data.json`. Static-query results are in `public/page-data/sq/d/*.json`.
@@ -101,6 +105,16 @@ The site uses styled-components only.
 - **Blurred images.** `GlobalStyle.js` blurs any `img` with `alt=""` or no `alt`.
 - **Section numbers** ("01.", "02.") come from a CSS counter that `src/pages/index.js` resets, so the section order sets the numbering.
 - **Fonts** (Calibre, SF Mono) are self-hosted from `src/fonts` through `src/styles/fonts.js`.
+
+### Docker and deployment
+
+The site runs on a VPS behind the Caddy proxy of the `vps-infrastructure` repo (cloned next to this one, in `../vps-infrastructure`). Caddy terminates TLS and routes `abdoulbasti-mukaila.com` to `portfolio_prod_web:8080` and `portfolio-test.abdoulbasti-mukaila.com` to `portfolio_test_web:8080` over the external `prod_net`/`test_net` networks. Renaming a container or changing its port therefore requires the same change in `proxy/Caddyfile` there.
+
+- **`Dockerfile`.** The build stages use `node:24-trixie-slim` (glibc, for the sharp/lmdb binaries) and run a full `npm ci`: devDependencies are needed by `.babelrc` and `gatsby-config.js`, and sharp 0.32 downloads libvips in its install script. The `production` target is `nginx-unprivileged`, which serves `public/` with `docker/nginx/default.conf`.
+- **nginx rules.** The Cache-Control `map` marks only `/static/` and hashed `-<20 hex>.js|css` chunks as immutable, so `sw.js` and HTML are always revalidated. There is no `try_files`, so nginx itself redirects `/dir` to `/dir/`, and `absolute_redirect off` keeps that redirect relative behind Caddy. If Gatsby changes its chunk naming, update the regex.
+- **Compose files.** `docker-compose.base.yml` holds the hardening (read-only filesystem, no capabilities, resource limits). Test, prod and the local `preview` service reuse it with `extends`. Test and prod publish no ports and do not join the `*_internal` database networks.
+- **Dev.** `docker-compose.dev.yml` uses Compose Watch instead of a bind mount, because the host's `node_modules` holds macOS binaries. Gatsby's `.cache` and `public` live in named volumes, which `make clean` removes.
+- **Images** come from GHCR (`ghcr.io/abdoulbasti/v4-portfolio-pro`), published by `.github/workflows/docker.yml`. A push to `main` publishes `:main` for test, and a `vX.Y.Z` tag publishes `:latest` for prod.
 
 ### Imports
 

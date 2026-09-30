@@ -73,6 +73,56 @@ Yes, you can fork this repo. Please give me proper credit by linking back to [br
    npm run serve
    ```
 
+## 🐳 Docker
+
+The site is deployed as a Docker image on a VPS, behind the Caddy reverse proxy of the [vps-infrastructure](https://github.com/Abdoulbasti/vps-infrastructure) platform. Caddy handles TLS and domains. Inside the image, a non-root nginx serves the static build (`public/`) on port 8080 and applies the site's own rules: Gatsby caching headers, `/page` → `/page/` redirects, the 404 page and a `/healthz` endpoint.
+
+| File                                   | Purpose                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------ |
+| `Dockerfile`                           | `development` target (gatsby develop), `production` target (nginx serving `public/`) |
+| `docker/nginx/default.conf`            | nginx rules for the static site                                                      |
+| `docker-compose.base.yml`              | Hardening shared by test, prod and the local preview (read-only, no capabilities)    |
+| `docker-compose.dev.yml`               | Local development and local preview of the production image                          |
+| `docker-compose.test.yml`, `.prod.yml` | Test and production, attached to the platform's `test_net` / `prod_net` networks     |
+| `.github/workflows/docker.yml`         | Builds the image and publishes it to GHCR                                            |
+
+Run `make help` to list every command. Local development needs Docker Compose 2.22 or later.
+
+### Local development
+
+```sh
+make dev       # gatsby develop with hot reload: http://localhost:8000
+make preview   # the production image, as it runs in test and prod: http://localhost:9000
+make clean     # delete the dev containers and Gatsby cache volumes
+```
+
+`make dev` uses Compose Watch: edits in `src/`, `content/`, `static/` and `gatsby-browser.js` are synced into the container and hot-reloaded, changes to `gatsby-config.js`, `gatsby-node.js`, `gatsby-ssr.js` and `.babelrc` restart it, and changes to `package*.json` rebuild the image.
+
+### Publishing images
+
+The GitHub Actions workflow publishes `ghcr.io/abdoulbasti/v4-portfolio-pro`:
+
+| Event          | Tags                                     | Deployed to |
+| -------------- | ---------------------------------------- | ----------- |
+| Push to `main` | `main`, `sha-<commit>`                   | test        |
+| Tag `vX.Y.Z`   | `X.Y.Z`, `X.Y`, `latest`, `sha-<commit>` | production  |
+| Pull request   | none (build only)                        | —           |
+
+The package must be public so the VPS can pull it without logging in (GitHub → Packages → v4-portfolio-pro → Package settings → Change visibility).
+
+### Deploying on the VPS
+
+The platform must be running (`make start` in vps-infrastructure). From a clone of this repository on the VPS:
+
+```sh
+make deploy ENV=test                      # pulls :main
+make deploy ENV=prod                      # pulls :latest, asks for confirmation
+make deploy ENV=prod IMAGE_TAG=1.0.0      # roll back, or promote an exact image (sha-<commit>)
+make logs ENV=prod
+```
+
+Caddy reaches the containers by name, on the platform networks: `abdoulbasti-mukaila.com` → `portfolio_prod_web:8080`, and `portfolio-test.abdoulbasti-mukaila.com` → `portfolio_test_web:8080`. The test site also sends `X-Robots-Tag: noindex`. The containers publish no ports.
+
 ## 📈 Analytics (to do)
 
 The site has no analytics for now. The Gatsby 5 migration removed `gatsby-plugin-google-analytics`, because it used Brittany Chiang's Universal Analytics ID and Google shut down Universal Analytics in July 2023.
