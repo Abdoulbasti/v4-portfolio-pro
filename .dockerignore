@@ -1,0 +1,30 @@
+# Dépendances et artefacts Gatsby : reconstruits dans l'image.
+# Les node_modules de l'hôte (binaires darwin) ne doivent jamais y entrer.
+node_modules
+.cache
+public
+
+# Git, CI, hooks, éditeurs
+.git
+.gitignore
+.github
+.husky
+.vscode
+.idea
+.claude
+.DS_Store
+*.log
+
+# Secrets
+.env
+.env.*
+
+# Fichiers Docker et outillage (évite d'invalider le cache de build)
+Dockerfile
+.dockerignore
+docker-compose*.yml
+Makefile
+
+# Docs
+README.md
+LICENSE

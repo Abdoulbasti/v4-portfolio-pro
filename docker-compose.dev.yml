@@ -1,0 +1,83 @@
+# ==========================================================================
+# DÉVELOPPEMENT LOCAL
+#
+#   make dev      → gatsby develop avec rechargement à chaud
+#                   http://localhost:8000 (GraphiQL : /___graphql)
+#   make preview  → image de production (nginx) en local, comme en test/prod
+#                   http://localhost:9000
+#
+# Compose Watch plutôt qu'un bind mount `.:/app` : les node_modules de l'hôte
+# sont compilés pour macOS (sharp, lmdb) et un volume anonyme pour
+# /app/node_modules devient périmé quand les dépendances changent. Ici,
+# node_modules reste dans l'image et un changement du lockfile la reconstruit.
+# ==========================================================================
+
+name: portfolio_dev
+
+services:
+  web:
+    build:
+      context: .
+      target: development
+    image: portfolio:dev
+    container_name: portfolio_dev_web
+    init: true
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # .cache et public restent ensemble pour des redémarrages à chaud.
+      # `make clean ENV=dev` les supprime (équivalent de `npm run clean`).
+      - gatsby_cache:/app/.cache
+      - gatsby_public:/app/public
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: sync
+          path: ./content
+          target: /app/content
+        - action: sync
+          path: ./static
+          target: /app/static
+        - action: sync
+          path: ./gatsby-browser.js
+          target: /app/gatsby-browser.js
+        # Gatsby ne recharge pas sa configuration à chaud : redémarrage.
+        - action: sync+restart
+          path: ./gatsby-config.js
+          target: /app/gatsby-config.js
+        - action: sync+restart
+          path: ./gatsby-node.js
+          target: /app/gatsby-node.js
+        - action: sync+restart
+          path: ./gatsby-ssr.js
+          target: /app/gatsby-ssr.js
+        - action: sync+restart
+          path: ./.babelrc
+          target: /app/.babelrc
+        # Nouvelles dépendances : reconstruction de l'image.
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+
+  # Image de production construite localement, avec le même durcissement
+  # qu'en test/prod. Lancé par `make preview` (docker compose run --rm).
+  preview:
+    extends:
+      file: docker-compose.base.yml
+      service: web
+    profiles:
+      - preview
+    build:
+      context: .
+      target: production
+    image: portfolio:local
+    restart: "no"
+    ports:
+      - "127.0.0.1:9000:8080"
+
+volumes:
+  gatsby_cache:
+  gatsby_public:

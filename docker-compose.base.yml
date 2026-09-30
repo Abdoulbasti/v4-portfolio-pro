@@ -1,0 +1,32 @@
+# ==========================================================================
+# Définition commune du service `web` (image nginx de production).
+#
+# Elle n'est pas lancée seule : docker-compose.test.yml, docker-compose.prod.yml
+# et le service `preview` de docker-compose.dev.yml la reprennent via
+# `extends`. Le préview local tourne donc exactement comme en test et en prod.
+# ==========================================================================
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  web:
+    restart: unless-stopped
+    # Système de fichiers en lecture seule : nginx-unprivileged n'écrit que son
+    # pid et ses fichiers temporaires, dans /tmp.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+    logging: *default-logging

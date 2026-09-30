@@ -1,0 +1,37 @@
+# ==========================================================================
+# TEST — portfolio servi derrière le Caddy de vps-infrastructure.
+#
+# Dérivé de templates/service.docker-compose.yml.example, avec ces écarts :
+#   - pas de réseau test_internal : site statique sans base de données, le
+#     conteneur public n'a donc aucune route vers test_db (moindre privilège) ;
+#     pas de provision-db.sh non plus ;
+#   - pas d'env_file : aucune variable d'exécution, tout est figé au build ;
+#   - pas de `ports` : l'accès passe uniquement par Caddy (un port publié
+#     contournerait Caddy et le pare-feu) ;
+#   - `name` explicite : test et prod peuvent tourner depuis le même clone.
+#
+# Bloc Caddy correspondant (proxy/Caddyfile) :
+#   portfolio-test.{$ROOT_DOMAIN} {
+#       header X-Robots-Tag "noindex, nofollow"
+#       reverse_proxy portfolio_test_web:8080
+#   }
+#
+# Déploiement (sur le VPS) : make deploy ENV=test [IMAGE_TAG=sha-xxxxxxx]
+# ==========================================================================
+
+name: portfolio_test
+
+services:
+  web:
+    extends:
+      file: docker-compose.base.yml
+      service: web
+    # :main = dernier push sur la branche main, publié par la CI.
+    image: ghcr.io/abdoulbasti/v4-portfolio-pro:${IMAGE_TAG:-main}
+    container_name: portfolio_test_web  # upstream utilisé par Caddy
+    networks:
+      - test_net  # rend le service routable par Caddy
+
+networks:
+  test_net:
+    external: true
