@@ -1,0 +1,37 @@
+# ==========================================================================
+# PRODUCTION — portfolio servi derrière le Caddy de vps-infrastructure.
+#
+# Dérivé de templates/service.docker-compose.yml.example, avec ces écarts :
+#   - pas de réseau prod_internal : site statique sans base de données, le
+#     conteneur public n'a donc aucune route vers prod_db (moindre privilège) ;
+#     pas de provision-db.sh non plus ;
+#   - pas d'env_file : aucune variable d'exécution, tout est figé au build ;
+#   - pas de `ports` : l'accès passe uniquement par Caddy (un port publié
+#     contournerait Caddy et le pare-feu) ;
+#   - `name` explicite : test et prod peuvent tourner depuis le même clone.
+#
+# Bloc Caddy correspondant (proxy/Caddyfile) :
+#   {$ROOT_DOMAIN} {
+#       reverse_proxy portfolio_prod_web:8080
+#   }
+#
+# Déploiement (sur le VPS) : make deploy ENV=prod [IMAGE_TAG=1.2.3]
+# ==========================================================================
+
+name: portfolio_prod
+
+services:
+  web:
+    extends:
+      file: docker-compose.base.yml
+      service: web
+    # :latest = dernier tag vX.Y.Z publié par la CI. IMAGE_TAG permet un
+    # retour arrière (1.1.0) ou la promotion exacte d'une image testée (sha-…).
+    image: ghcr.io/abdoulbasti/v4-portfolio-pro:${IMAGE_TAG:-latest}
+    container_name: portfolio_prod_web  # upstream utilisé par Caddy
+    networks:
+      - prod_net  # rend le service routable par Caddy
+
+networks:
+  prod_net:
+    external: true
