@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Personal portfolio of Abdoulbasti MUKAILA, forked from Brittany Chiang's v4 site and migrated to Gatsby 5, React 18 and styled-components 5. Much of the copy, Markdown content and some assets (logo, `static/og.png`) still belong to the original author and are being replaced. The upstream README allows forking only with attribution, so keep a visible credit linking to https://brittanychiang.com. It currently lives in `src/components/footer.js`.
+Personal portfolio of Abdoulbasti MUKAILA, forked from Brittany Chiang's v4 site and migrated to Gatsby 5, React 18 and styled-components 5. Much of the copy, Markdown content and the logo still belong to the original author and are being replaced. The Open Graph image `static/og-v2.png` (`siteMetadata.image`) is already the owner's. The upstream README asks forks to credit Brittany Chiang with a link to https://brittanychiang.com, but at the owner's request the site shows no credit. `LICENSE` keeps Brittany Chiang's MIT copyright notice, which the license does require. The footer (`src/components/footer.js`) shows the owner's name and GitHub activity: commits, public repositories and last push. It fetches them from the unauthenticated GitHub REST API, in development as in production, and caches them in `sessionStorage`, so each browser tab makes three requests at most.
 
 ## Commands
 
