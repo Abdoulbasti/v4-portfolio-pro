@@ -61,6 +61,7 @@ There is no `createSchemaCustomization`, so frontmatter types come from whatever
 ### Where the site's content is defined
 
 - The copy for Hero, About and Contact is hard-coded JSX in `src/components/sections/`.
+- `sections/certifications.js` and `sections/recommendations.js` render only their numbered heading for now. Their content is still to be designed.
 - `src/config.js` holds the email, social links, nav links and ScrollReveal preset.
 - SEO metadata lives in `siteMetadata` in `gatsby-config.js`, which `src/components/seo.js` reads.
 - There is no analytics. The README explains how to add GA4 with `gatsby-plugin-google-gtag`.
@@ -76,6 +77,7 @@ Head tags use the Gatsby Head API, and there is no react-helmet. Each page and t
 
 - On `/`, Layout shows the full-screen anime.js loader first, including during SSR, and passes `isHome` to the nav and the side rails to stagger their entrance.
 - Layout also scrolls to `location.hash`, and it sets `target="_blank"` on every link whose host differs from the page's.
+- At 1080px and below, the hamburger menu replaces the row of nav links, because the six links do not fit on one line. `nav.js` and `menu.js` both use this breakpoint, including the resize handler that closes the menu.
 
 ### Motion and SSR
 
