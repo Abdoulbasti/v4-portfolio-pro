@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import styled from 'styled-components';
 import { Icon } from '@components/icons';
 import { socialMedia } from '@config';
+
+const GITHUB_USER = 'Abdoulbasti';
+const GITHUB_API = 'https://api.github.com';
+const STATS_STORAGE_KEY = 'githubStats';
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const StyledFooter = styled.footer`
   ${({ theme }) => theme.mixins.flexCenter};
@@ -51,6 +55,10 @@ const StyledCredit = styled.div`
   }
 
   .github-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 5px;
     margin-top: 10px;
 
     & > span {
@@ -67,24 +75,54 @@ const StyledCredit = styled.div`
   }
 `;
 
-const Footer = () => {
-  const [githubInfo, setGitHubInfo] = useState({
-    stars: null,
-    forks: null,
+const fetchJson = url =>
+  fetch(url).then(response => {
+    if (!response.ok) {
+      throw new Error(`GitHub API responded ${response.status} to ${url}`);
+    }
+    return response.json();
   });
 
+// "today", "yesterday", "3 days ago", then "1 month ago", "2 months ago"
+const timeAgo = date => {
+  const days = Math.max(0, Math.round((Date.now() - Date.parse(date)) / DAY_IN_MS));
+  return days < 30
+    ? new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(-days, 'day')
+    : new Intl.RelativeTimeFormat('en').format(-Math.floor(days / 30), 'month');
+};
+
+const Footer = () => {
+  const [githubStats, setGitHubStats] = useState(null);
+
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      return;
+    // Layout remounts the footer on every page: reuse the stats this session already fetched
+    try {
+      const cachedStats = sessionStorage.getItem(STATS_STORAGE_KEY);
+      if (cachedStats) {
+        setGitHubStats(JSON.parse(cachedStats));
+        return;
+      }
+    } catch (e) {
+      // Storage unavailable: fetch the stats below
     }
-    fetch('https://api.github.com/repos/bchiang7/v4')
-      .then(response => response.json())
-      .then(json => {
-        const { stargazers_count, forks_count } = json;
-        setGitHubInfo({
-          stars: stargazers_count,
-          forks: forks_count,
-        });
+
+    Promise.all([
+      fetchJson(`${GITHUB_API}/search/commits?q=author:${GITHUB_USER}&per_page=1`),
+      fetchJson(`${GITHUB_API}/users/${GITHUB_USER}`),
+      fetchJson(`${GITHUB_API}/users/${GITHUB_USER}/repos?sort=pushed&per_page=1`),
+    ])
+      .then(([commits, user, [lastPushedRepo]]) => {
+        const stats = {
+          commits: commits.total_count,
+          repos: user.public_repos,
+          lastPush: lastPushedRepo ? timeAgo(lastPushedRepo.pushed_at) : null,
+        };
+        setGitHubStats(stats);
+        try {
+          sessionStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
+        } catch (e) {
+          // Not cached: the next page fetches the stats again
+        }
       })
       .catch(e => console.error(e));
   }, []);
@@ -104,30 +142,32 @@ const Footer = () => {
         </ul>
       </StyledSocialLinks>
 
-      <StyledCredit tabindex="-1">
-        <a href="https://github.com/bchiang7/v4">
-          <div>Designed &amp; Built by Brittany Chiang</div>
+      <StyledCredit>
+        <a href={`https://github.com/${GITHUB_USER}`}>
+          <div>Abdoulbasti MUKAILA</div>
 
-          {githubInfo.stars && githubInfo.forks && (
+          {githubStats && (
             <div className="github-stats">
               <span>
-                <Icon name="Star" />
-                <span>{githubInfo.stars.toLocaleString()}</span>
+                <Icon name="Commit" />
+                <span>{githubStats.commits.toLocaleString('en-US')} commits</span>
               </span>
               <span>
-                <Icon name="Fork" />
-                <span>{githubInfo.forks.toLocaleString()}</span>
+                <Icon name="Repo" />
+                <span>{githubStats.repos.toLocaleString('en-US')} repos</span>
               </span>
+              {githubStats.lastPush && (
+                <span>
+                  <Icon name="Clock" />
+                  <span>last push {githubStats.lastPush}</span>
+                </span>
+              )}
             </div>
           )}
         </a>
       </StyledCredit>
     </StyledFooter>
   );
-};
-
-Footer.propTypes = {
-  githubInfo: PropTypes.object,
 };
 
 export default Footer;
